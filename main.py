@@ -7,21 +7,24 @@ path_data = os.path.join(path_project, 'data')
 # Our code
 sys.path.insert(1, path_project)
 sys.path.insert(1, os.path.join(path_project, 'utils'))
-import load_utils, toolbox
+import load_utils, ripmap
 
 # ==================================================================
 # 			INITIALIZE
 # ==================================================================
 
 # Analyse one mat file
-file_name = 'ER20_micro1.mat'
-# Load variables
+file_name = 'ER20_micro1_epoch1.mat'
+# Load LFP, channel detection and srate
 file_dict = load_utils.read_matlab_v73_files(os.path.join(path_data,file_name))
-sf = file_dict['srate'][0,0]
-lfp = file_dict['lfp'].flatten()
-times = { 'swrs': file_dict['HFOs']['peaks'].flatten(), 
+sf = float(file_dict['srate'][0,0])
+channel = int(file_dict['detection_chan'][0,0])
+lfp = file_dict['lfp'][channel,:].flatten()
+# Load detections
+file_dict = scipy.io.loadmat(os.path.join(path_data,file_name[:-4]+'_automatic_detections.mat'))
+times = { 'swrs': file_dict['HFOs'].flatten(), 
 		  'ieds': file_dict['IEDs'].flatten(),
-		  'id_fps': (file_dict['HFOs']['flagged'].flatten()-1).astype(int) if 'flagged' in file_dict['HFOs'].keys() else []
+		  'id_fps': (file_dict['HFOs']['flagged'].flatten()-1).astype(int) if 'flagged' in file_dict.keys() else []
 		 }
 
 # Parameters
@@ -38,7 +41,7 @@ n_axis_bins = 9
 axis_method = 'centroids'
 do_axis_grid = False
 fp_separately = False
-selected_hfos, selected_ieds, events, params = toolbox.event_curation(lfp, sf, times, 
+selected_hfos, selected_ieds, events, params = ripmap.event_curation(lfp, sf, times, 
 								win_size_show=win_size_show, win_size_umap=win_size_umap, 
 								do_detrend=do_detrend, do_zscore=do_zscore, 
 								list_n_neighbors=list_n_neighbors, list_min_dists=list_min_dists, 
@@ -48,7 +51,7 @@ selected_hfos, selected_ieds, events, params = toolbox.event_curation(lfp, sf, t
 								file_name=file_name, saveas_folder=saveas_folder, save_format='png')
 
 # Final manual inspection - optional
-ids_keep = toolbox.manual_inspection(lfp, sf, times['swrs'][selected_hfos], times['ieds'][selected_ieds], 
+ids_keep = ripmap.manual_inspection(lfp, sf, times['swrs'][selected_hfos], times['ieds'][selected_ieds], 
 								params, events_in_screen=50, win_size=200,
 								file_name=file_name, saveas_folder=saveas_folder)
 
