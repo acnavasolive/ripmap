@@ -4,6 +4,8 @@
 
 **Summary**: The way `ripmap` works, is by first performing an analysis of the topological features of the data, by (i) computing the mean intrinsic dimension of the data in the original space, and (ii) characterizing the shape of the cloud using persistent homology. Then, data is reduced to a lower dimensional space and plotted in 2D using UMAP. `ripmap` GUI offers the possibility to perform the dimensionality reduction using different UMAP parameter values at the same time, and select the parameters that better segregate IED-detected from SWR-detected events. If SWR & IED events are clearly segregated, the user can visualize a clustering of the UMAP cloud by specifying “do_clusters = 1” in the GUI. Pressing “continue”, a new figure appears with an interactive plot that allows to select any custom area and display the events inside it. In this way, relating the position of an event in the UMAP cloud with its waveform becomes very intuitive. It can happen that the UMAP cloud shows no segregation and clustering is not possible, so an alternative curation approach can be taken by specifying “do_clusters=0” in the GUI. What happens then is that the 2D UMAP cloud is projected into a 1D axis and and binned in equidistant segments. The new figure shows the mean waveform of the events of each bin, which typically transitions from a SWR-like waveform to an IED-like waveform. Individual events can also be displayed here.
 
+
+
 ## System requirements
 
 This toolbox does not need excessive computational requirements, and it has been tested on computers with both macOS (Sequoia Version 15.2, 32GB Apple M1 Pro) and Ubuntu (Ubuntu 22.04.3 LTS on a Lenovo ThinkPad L14 Gen 4 with 16 GB of memory, a 13th Gen Intel® Core™ i5-1335U × 12 processor and Mesa Intel® Graphics) operating systems.
@@ -23,10 +25,13 @@ conda activate ripmap
 
 # Install necessary packages
 pip install h5py==3.12.1 hdbscan==0.8.39 numba==0.60.0 permetrics==2.0.0 persim==0.3.7 ripser==0.6.10 tqdm==4.67.0 umap-learn==0.5.7
+ 
+# And clone this respository
+git clone https://github.com/acnavasolive/ripmap.git
 ```
-This process should take a couple of minutes (1-3min).
 
-## Demo & Instructions for use
+
+## Instructions for use & Demo
 
 For this particular demo, patient number 20 has been included, and the original recording plus detected HFOs and IEDs times can be found at "ripmap/data/ER20_micro1.mat". This .mat file contains:
 	- `lfp`: (timestamps x nchannels) matrix with raw LFP
@@ -48,7 +53,96 @@ conda activate ripmap
 python main.py
 ```
 
-### Pipeline
+
+### Documentation
+
+
+All the functions in `ripmap.py` are documented, and information can be accessed by typing `help(ripmap.fun)` in python. However, here we provide a small summary:
+
+---
+
+**```ripmap.event_curation(lfp, sf, t_swrs, t_ieds, id_fps=[], win_size_show=0.075, win_size_umap=0.075, do_detrend=True, do_zscore=False, list_n_neighbors=[10, 50, 100, 200], list_min_dists=[0.0, 0.1, 0.2, 0.3], intrinsic_dimension=4, n_elements=30, n_axis_bins=9, file_name='', saveas_folder='')```**
+
+Implements an event curation based on waveform similarity, using dimensionality reduction. First, multiple embeddings for all the combinations of `n_neighbors` and `min_dist` from the optinal input variables  list_n_neighbors` and `list_min_dists` are computed with UMAP and presented in a figure, along with  extra summary plots of topological features of the original space (mean intrinsic dimension, computed  using ABID) and persistant homology for betti number = 0. In this plot, the user has to specify the optimal UMAP`s `n_neighbors` and `min_dist` parameters, and if events can be divided into clusters or not. When the `Continue` button is pressed, the interactive curation GUI appears.
+If there are clusters (do_clusters=1), the GUI will allow to select which is the cluster that represents the putative SWRs. Events that are not in the box will be labeled as `False` in the output variable `curated_labels`. If the `Finish` button is pressed, the GUI will close and the curated labels will be returned. If the `Update` button is pressed, then a new UMAP will be computed, and a new embedding will be shown. This process can be done multiple times until the cluster is as clean as possible.
+If there are not clusters (do_clusters=0), then the whole UMAP cloud is divided into `n_axis_bins` bins along the main axis of the cloud shape. Events are projected into this axis, and the mean of the events of each bin are displayed with colors that reflect the amount of events that come from the SWR or IED detectors. The GUI contains two boxes to define from which to which bin (`min_bin` to `max_bin`) are the optimal events.
+
+**Inputs**
+- `lfp` (`np.ndarray`): Array containing the LFP signal of the channel used to detect events
+- `sf` (`float`): Sampling frequency, in Hz
+- `times` (`dict`): Dictionary containing:
+	- `swrs` (`np.ndarray): times (in sec) of the center of the events automatically detected by the SWR detector
+	- `ieds` (`np.ndarray): times (in sec) of the center of the events automatically detected by the IED detector
+	- `id_fps` (`np.ndarray`],: containing the indexes of the `t_swrs` variable that are False Positives. If not given, id_fps = []. UMAP will use all the entries that are in this dict. If there is no `ieds`, UMAP will be done only with pSWRs
+- `power_spectrum` (`dict`): Dictionary containing:
+	- `swrs` (`np.ndarray`): power spectrum of all events detected by the SWR detector (same order)
+	- `ieds` (`np.ndarray`): power spectrum of all events detected by the IED detector (same order)
+- `use` (`list`): List of strings indicating what to use for UMAP. Options are: `lfp` and/or `power_spectrum` (`ps` or `powspctrm` are also accepted)
+- `win_size_show` (`float`, *optional*): Duration (in seconds) of the window before/after t_swrs (and t_ieds) over which to show events. By default win_size_show = 0.075
+- `win_size_umap` (`float`, *optional*): Duration (in seconds) of the window before/after t_swrs (and t_ieds) over which to perform UMAP. By default win_size_umap = 0.075
+- `do_detrend` (`bool`, *optional*): To specify if dentrend should be applied to each event (True) or not (False). By default do_detrend = True
+- `do_zscore` (`bool`, *optional*): Boolean to specify if zscore should be applied to each event (True) or not (False). By default do_zscore = False
+- `list_n_neighbors` (`np.ndarray] or[`list`, optional)] List of `n_neighbor` parameters to perform the Intrinsic Dimension and UMAP analysis with. . By default list_n_neighbors = [10, 50, 100, 200]
+- `list_min_dists` (`np.ndarray] or[`list`, optional)] List of `min_dist` parameters to compute UMAP with. By default list_min_dists = [0.0, 0.1, 0.2, 0.3]
+- `intrinsic_dimension` (`int`, *optional*): Integer to specify intrinsic dimension. It should be 4, but if the `Intrinsic dimension` plot shows something different, close and re-run this function changing this variable
+- `n_elements` (`int`, *optional*): Number of elements shown in the persistent homology analysis for betti number H=0. By default n_elements = 30
+- `n_axis_bins` (`int`, *optional*): Number of bins by which to divide the UMAP cloud, in case there is no possibility of clustering. By default n_axis_bins = 9
+- `axis_method` (`string`, *optional*): Method to use for computing the axis.
+	- `centroids`: computes the axis from the centroid of events from each detector, and traces a line between them (default). Automatically switches to `fit` if no IED or no SWR data is provided
+	- `fit`: fits all data to a quadratic line (`topol_utils.fit_axis`). 
+- `do_axis_grid` (`bool`, *optional*): In axis method: plot events over and below the axis in different subplots. By default do_axis_grid = False
+- `plot_fp_separately` (`bool`, *optional*): In axis method: plot False Positives separately. By default plot_fp_separately = False
+- `file_name` (`string`, *optional*): Name of the file, to show it in plots (if provided)
+- `saveas_folder` (`string`, *optional*): Full path to folder in which to save plots (if provided)
+- `save_format` (`string`, *optional*): Format to save the figure. By default save_format=`png`
+
+**Outputs**
+- `curated_swrs` (`np.ndarray`): Boolean array with the curated labels for `t_swrs`, selected through the interactive plots
+- `curated_ieds` (`np.ndarray`): Boolean array with the curated labels for `t_ieds`, selected through the interactive plots
+- `events` (`np.ndarray`): Array of size (#events, time) with all events to be curated
+- `params` (`dict`): A dictionary with all the parameters
+
+----
+
+**```ripmap.plot_curated_events(events, curated_labels, params, from_swr_detector=None)```**
+
+**Inputs**
+- `events` (`np.ndarray`): Array of size (#events, time) with all events to be curated
+- `curated_labels` (`np.ndarray`): Boolean array of size (#events,) indicating if the curation has classified each event as SWR (`True`) or IED (`False`).
+- `params` (`dict`): Dictionary of parameters, including: `id_fps`, `win_size`, `do_detrend`, `do_zscore`, `list_n_neighbors`, `list_min_dists`, `max_B`, `intrinsic_dimension`, `n_elements`, `n_axis_bins`, `file_name`, `saveas_folder`, `n_neighbors`, `min_dist`, `do_cluster`, 
+	`embedding`
+- `from_swr_detector` (`np.ndarray`): Array of size (#events,) specifying for each event how was it detected:
+	- 0 : from IED detector
+	- 1 : from SWR detector
+	- 2 : manually labeled as FP
+
+
+**Returns**:
+- `finish` (`boolean`): Finish analysis or not
+
+----
+
+**```ripmap.manual_inspection(lfp, sf, t_curated, events_in_screen=50, file_name='', saveas_folder='')```**
+
+**Inputs**
+- `lfp` (`np.ndarray`): Array containing the LFP signal of the channel used to detect events
+- `sf` (`float`): Sampling frequency, in Hz
+- `t_swrs` (`np.ndarray`): Array containing the times (in seconds) of the center of the events automatically detected by the SWR detector
+- `t_ieds` (`np.ndarray`): Array containing the times (in seconds) of the center of the events automatically detected by the IED detector
+- `events_in_screen` (`int`, *optional*): Number of events in screen. By default, 5x10
+- `win_size` (`int`): Length of the displayed ripples in miliseconds
+- `file_name` (`string`, *optional*): Name of the file, to show it in plots (if provided)
+- `saveas_folder` (`string`, *optional*): Full path to folder in which to save plots (if provided)
+
+**Returns**
+
+It always writes the curated events begin and end times in saveas_folder
+- `curated_ids`: (events,) boolean array with `True` for events that have been selected, and `False` for events that had been discarded
+
+
+----
+
+### Demo pipeline
 
 1. As described above, the first thing `ripmap` does is creating the events to be analysed, which are snippets around the center of the detected events. Snippets are preprocessed to optimise SWR-IED seggregation (`win_size_show = 0.100`; `win_size_umap = 0.020`; `do_detrend = True`; `do_zscore = False`; lines 28 to 31 in `main.py`; see Supplementary Figures 11 & 12). 
 
@@ -58,11 +152,11 @@ python main.py
 
 	Because the UMAP cloud will have different shapes depending on these parameters, `ripmap` automatically explores the combination of several values (in particular, `list_n_neighbors = [10, 50, 100]`, and `list_min_dists = [0.0, 0.1, 0.2]`). Each dot represents an event, and is coloured based on their label: pIEDs (red: putative IEDs, coming from the IED detector), pSWRs (blue: putative SWRs, coming from the HFO detector), or FPs (grey: manual identification of false positives in the HFO list).  This is the part that takes the most time.
 
-<p align="center" width="100%">
-	<img src="https://github.com/acnavasolive/ripmap/blob/main/figures/readme-01.png" width="800">
-</p>
+	<p align="center" width="100%">
+		<img src="https://github.com/acnavasolive/ripmap/blob/main/figures/readme-01.png" width="800">
+	</p>
 
-   At the end of this process, the first screen is displayed, showing:
+    At the end of this process, the first screen is displayed, showing:
 	- The intrinsic dimension of the high dimensional cloud, depending on the number of neighbors used. The green dotted line depicts the intrinsic dimension used for the analysis (in this case is 4D; see Figure 4).
 	- Persistent homology analisys, barcodes reflect the “life span” of a connected component (Betti β0). The number of long barcodes represent the number of connected components in the original dimension cloud.
 	- 3 x 3 UMAP plots, for all combinations of `list_n_neighbors` and `list_min_dists` values. 

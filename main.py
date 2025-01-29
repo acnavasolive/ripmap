@@ -16,15 +16,15 @@ import load_utils, ripmap
 # Analyse one mat file
 file_name = 'ER20_micro1_epoch1.mat'
 # Load LFP, channel detection and srate
-file_dict = load_utils.read_matlab_v73_files(os.path.join(path_data,file_name))
-sf = float(file_dict['srate'][0,0])
-channel = int(file_dict['detection_chan'][0,0])
-lfp = file_dict['lfp'][channel,:].flatten()
+session_dict = load_utils.read_matlab_v73_files(os.path.join(path_data,file_name))
+sf = float(session_dict['srate'][0,0])
+channel = int(session_dict['detection_chan'][0,0])
+lfp = session_dict['lfp'][channel,:].flatten()
 # Load detections
-file_dict = scipy.io.loadmat(os.path.join(path_data,file_name[:-4]+'_automatic_detections.mat'))
-times = { 'swrs': file_dict['HFOs'].flatten(), 
-		  'ieds': file_dict['IEDs'].flatten(),
-		  'id_fps': (file_dict['HFOs']['flagged'].flatten()-1).astype(int) if 'flagged' in file_dict.keys() else []
+detections_dict = scipy.io.loadmat(os.path.join(path_data,file_name[:-4]+'_automatic_detections.mat'))
+times = { 'swrs': detections_dict['HFOs'].flatten(), 
+		  'ieds': detections_dict['IEDs'].flatten(),
+		  'id_fps': (detections_dict['HFOs']['flagged'].flatten()-1).astype(int) if 'flagged' in detections_dict.keys() else []
 		 }
 
 # Parameters
