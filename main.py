@@ -18,7 +18,7 @@ file_name = 'ER20_micro1_epoch1.mat'
 # Load LFP, channel detection and srate
 session_dict = load_utils.read_matlab_v73_files(os.path.join(path_data,file_name))
 sf = float(session_dict['srate'][0,0])
-channel = int(session_dict['detection_chan'][0,0])
+channel = int(session_dict['detectionChannel'][0,0])
 lfp = session_dict['lfp'][channel,:].flatten()
 # Load detections
 detections_dict = scipy.io.loadmat(os.path.join(path_data,file_name[:-4]+'_automatic_detections.mat'))

@@ -56,23 +56,23 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 	are displayed with colors that reflect the amount of events that come from the SWR or IED detectors. The GUI
 	contains two boxes to define from which to which bin ('min_bin' to 'max_bin') are the optimal events.
 
-	Parameters:
-	-----------
-		lfp (numpy array): 
+	Inputs:
+	-------
+		lfp (np.ndarray): 
 			Array containing the LFP signal of the channel used to detect events
 		sf (float):
 			Sampling frequency, in Hz
-		times (dictionary):
+		times (dict):
 			Dictionary containing:
-				'swrs': numpy array of times (sec) of the center of the events automatically detected by the SWR detector
-				'ieds': numpy array of times (sec) of the center of the events automatically detected by the IED detector
-				'id_fps': numpy array, containing the indexes of the 't_swrs' variable that are False Positives. 
+				'swrs': np.ndarray of times (sec) of the center of the events automatically detected by the SWR detector
+				'ieds': np.ndarray of times (sec) of the center of the events automatically detected by the IED detector
+				'id_fps': np.ndarray, containing the indexes of the 't_swrs' variable that are False Positives. 
 						  If not given, id_fps = []
-			UMAP will use all the entries that are in this dictionary. If there is no 'ieds', UMAP will be done only with pSWRs
-		power_spectrum (dictionary):
+			UMAP will use all the entries that are in this dict. If there is no 'ieds', UMAP will be done only with pSWRs
+		power_spectrum (dict):
 			Dictionary containing:
-				'swrs': numpy array of power spectrum of all events detected by the SWR detector (same order)
-				'ieds': numpy array of power spectrum of all events detected by the IED detector (same order)
+				'swrs': np.ndarray of power spectrum of all events detected by the SWR detector (same order)
+				'ieds': np.ndarray of power spectrum of all events detected by the IED detector (same order)
 		use (list):
 			List of strings indicating what to use for UMAP. Options are: 'lfp' and/or 'power_spectrum' ('ps' or 'powspctrm'
 			are also accepted)
@@ -88,10 +88,10 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 		do_zscore (bool, optional):
 			Boolean to specify if zscore should be applied to each event (True) or not (False).
 			By default do_zscore = False
-		list_n_neighbors (numpy array or list, optional):
+		list_n_neighbors (np.ndarray or list, optional):
 			List of 'n_neighbor' parameters to perform the Intrinsic Dimension and UMAP analysis with. 
 			By default list_n_neighbors = [10, 50, 100, 200]
-		list_min_dists (numpy array or list, optional):
+		list_min_dists (np.ndarray or list, optional):
 			List of 'min_dist' parameters to compute UMAP with
 			By default list_min_dists = [0.0, 0.1, 0.2, 0.3]
 		intrinsic_dimension (int, optional):
@@ -122,16 +122,16 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 		save_format (string, optional):
 			Format to save the figure. By default save_format='png'
 
-	Returns:
+	Outputs:
 	--------
-		curated_swrs (numpy array): 
+		curated_swrs (np.ndarray): 
 			Boolean array with the curated labels for 't_swrs', selected through the interactive plots
-		curated_ieds (numpy array): 
+		curated_ieds (np.ndarray): 
 			Boolean array with the curated labels for 't_ieds', selected through the interactive plots
-		events (numpy array):
+		events (np.ndarray):
 			Array of size (#events, time) with all events to be curated
-		params (dictionary):
-			A dictionary with all the parameters
+		params (dict):
+			A dict with all the parameters
 	'''
 
 
@@ -147,7 +147,7 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 	# Convert them to arrays
 	list_n_neighbors = np.array(list_n_neighbors)
 	list_min_dists = np.array(list_min_dists)
-	# Make dictionary
+	# Make dict
 	params = {'id_fps':id_fps, 'use':use, 'win_size_show':win_size_show, 'win_size_umap':win_size_umap, 'do_detrend':do_detrend, 'do_zscore':do_zscore, 
 			  'list_n_neighbors':list_n_neighbors, 'list_min_dists':list_min_dists, 'max_B':max_B,
 			  'intrinsic_dimension':intrinsic_dimension, 'n_elements':n_elements, 
@@ -267,44 +267,42 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 
 	# ========= STEP 4: RETURN =========================================================================
 
-	# Returns
+	# Outputs
 	curated_swrs = curated_labels[from_swr_detector>0]
 	curated_ieds = curated_labels[from_swr_detector==0]
 	return curated_swrs, curated_ieds, umap_events, params
-
-
 
 
 def event_topology_summary(abids, diagrams, dense_diagrams, umap_embeddings, from_swr_detector, params):
 	'''
 	event_topology_summary(abids, diagrams, dense_diagrams, umap_embeddings, from_swr_detector, params)
 	
-	Parameters:
-	-----------
-		abids (numpy array):
+	Inputs:
+	-------
+		abids (np.ndarray):
 			Angle Based Intrinsic Dimensionality array, which is the output topol_utils.compute_abids()
-		diagrams (numpy array):
+		diagrams (np.ndarray):
 			Array with persistent homology element lifes, which is the output of tolo_utils.compute_diagrams()
-		dense_diagrams (numpy array):
+		dense_diagrams (np.ndarray):
 			Array with persistent homology element lifes, but computed as a function of the density,
 			which is the output of tolo_utils.compute_dense_diagrams()
-		umap_embeddings (numpy array):
+		umap_embeddings (np.ndarray):
 			All the UMAP projections of 'umap_events' into the low-dimension embedding for each n_neighbors 
 			and each min_dist
-		from_swr_detector (numpy array):
+		from_swr_detector (np.ndarray):
 			Array of size (#events,) specifying for each event how was it detected:
 				0 - from IED detector
 				1 - from SWR detector
 				2 - manually labeled as FP
-		params (dictionary):
+		params (dict):
 			Dictionary of parameters, including: id_fps, win_size, do_detrend, do_zscore, 
 			list_n_neighbors, list_min_dists, max_B, intrinsic_dimension, n_elements, 
 			n_axis_bins, file_name, saveas_folder, n_neighbors, min_dist, do_cluster, 
 			embedding
 	
-	Returns:
+	Outputs:
 	--------
-		curated_labels (numpy array):
+		curated_labels (np.ndarray):
 			Boolean array of size (#events,) indicating if the curation has classified
 			each event as SWR (True) or IED (False).
 	'''
@@ -431,6 +429,7 @@ def event_topology_summary(abids, diagrams, dense_diagrams, umap_embeddings, fro
 	do_cluster = callback.do_cluster
 
 	return n_neighbors, min_dist, do_cluster
+
 
 def make_axis_figure(fig, axes, from_swr_detector, params, embedding, lfp_events, umap_events, iteration=0):
 
@@ -617,32 +616,33 @@ def make_axis_figure(fig, axes, from_swr_detector, params, embedding, lfp_events
 
 	return event_bins, event_bins_isup
 
+
 def axis_projection_curation(embedding, lfp_events, umap_events, from_swr_detector, params):
 	'''
 	axis_projection_curation(embedding, lfp_events, umap_events, from_swr_detector, params)
 	
-	Parameters:
-	-----------
-		embedding (numpy array):
+	Inputs:
+	-------
+		embedding (np.ndarray):
 			UMAP projection of 'lfp_events' into the low-dimension embedding
-		lfp_events (numpy array):
+		lfp_events (np.ndarray):
 			Array of size (#events, time) with all events to be curated
-		umap_events (numpy array):
+		umap_events (np.ndarray):
 			Array of size (#events, time) with all inputs to umap
-		from_swr_detector (numpy array):
+		from_swr_detector (np.ndarray):
 			Array of size (#events,) specifying for each event how was it detected:
 				0 - from IED detector
 				1 - from SWR detector
 				2 - manually labeled as FP
-		params (dictionary):
+		params (dict):
 			Dictionary of parameters, including: id_fps, win_size, do_detrend, do_zscore, 
 			list_n_neighbors, list_min_dists, max_B, intrinsic_dimension, n_elements, 
 			n_axis_bins, file_name, saveas_folder, n_neighbors, min_dist, do_cluster, 
 			embedding
 	
-	Returns:
+	Outputs:
 	--------
-		curated_labels (numpy array):
+		curated_labels (np.ndarray):
 			Boolean array of size (#events,) indicating if the curation has classified
 			each event as SWR (True) or IED (False).
 	'''
@@ -827,28 +827,28 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 	'''
 	cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, params)
 	
-	Parameters:
-	-----------
-		embedding (numpy array):
+	Inputs:
+	-------
+		embedding (np.ndarray):
 			UMAP projection of 'lfp_events' into the low-dimension embedding
-		lfp_events (numpy array):
+		lfp_events (np.ndarray):
 			Array of size (#events, time) with all events to be curated
-		umap_events (numpy array):
+		umap_events (np.ndarray):
 			Array of size (#events, time) with all inputs to umap
-		from_swr_detector (numpy array):
+		from_swr_detector (np.ndarray):
 			Array of size (#events,) specifying for each event how was it detected:
 				0 - from IED detector
 				1 - from SWR detector
 				2 - manually labeled as FP
-		params (dictionary):
+		params (dict):
 			Dictionary of parameters, including: id_fps, win_size, do_detrend, do_zscore, 
 			list_n_neighbors, list_min_dists, max_B, intrinsic_dimension, n_elements, 
 			n_axis_bins, file_name, saveas_folder, n_neighbors, min_dist, do_cluster, 
 			embedding
 	
-	Returns:
+	Outputs:
 	--------
-		curated_labels (numpy array):
+		curated_labels (np.ndarray):
 			Boolean array of size (#events,) indicating if the curation has classified
 			each event as SWR (True) or IED (False).
 	'''
@@ -1002,7 +1002,10 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 				path = Path(self.verts)
 				in_polygon = path.contains_points(np.hstack((self.X, self.Y)))
 				curated_labels_plot[ids_in_embedding] = in_polygon
-				plot_curated_events(self.lfp_events, curated_labels_plot, self.params, from_swr_detector=from_swr_detector[ids_in_embedding])
+				print(f'self.lfp_events[ids_in_embedding].shape: {self.lfp_events.shape}')
+				print(f'curated_labels_plot[ids_in_embedding].shape: {curated_labels_plot.shape}')
+				print(f'from_swr_detector[ids_in_embedding].shape: {from_swr_detector.shape}')
+				plot_curated_events(self.lfp_events[ids_in_embedding,:], curated_labels_plot[ids_in_embedding], self.params, from_swr_detector=from_swr_detector[ids_in_embedding])
 
 			def finish_button(self, event):
 				self.do_finish = True
@@ -1021,23 +1024,23 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 		else:
 			callback.savefig = os.path.join(saveas_folder, f'cluster_iteration{iteration}.{save_format}')
 		# Back button
-		axbut_back = plt.axes([0.9, 0.80, 0.1, 0.075])
+		axbut_back = plt.axes([0.91, 0.80, 0.08, 0.075])
 		axbut_b = Button(axbut_back, 'Back')
 		axbut_b.on_clicked(callback.back_button)
 		# Update button
-		axbut_update = plt.axes([0.9, 0.70, 0.1, 0.075])
+		axbut_update = plt.axes([0.91, 0.70, 0.08, 0.075])
 		axbut_u = Button(axbut_update, 'Update')
 		axbut_u.on_clicked(callback.update_button)
 		# Do axis button
-		axbut_axis = plt.axes([0.9, 0.60, 0.1, 0.075])
+		axbut_axis = plt.axes([0.91, 0.60, 0.08, 0.075])
 		axbut_a = Button(axbut_axis, 'Project to axis')
 		axbut_a.on_clicked(callback.axis_button)
 		# Plot events button
-		axbut_events = plt.axes([0.9, 0.50, 0.1, 0.075])
+		axbut_events = plt.axes([0.91, 0.50, 0.08, 0.075])
 		axbut_e = Button(axbut_events, 'Plot events')
 		axbut_e.on_clicked(callback.events_button)
 		# Finish button
-		axbut_finish = plt.axes([0.9, 0.40, 0.1, 0.075])
+		axbut_finish = plt.axes([0.91, 0.40, 0.08, 0.075])
 		axbut_f = Button(axbut_finish, 'Finish')
 		axbut_f.on_clicked(callback.finish_button)
 		# Interactive rectangle 
@@ -1086,26 +1089,25 @@ def plot_curated_events(events, curated_labels, params, from_swr_detector=None):
 	'''
 	plot_curated_events(events, curated_labels, params, from_swr_detector=None)
 	
-	Parameters:
-	-----------
-		events (numpy array):
+	Inputs:
+	-------
+		events (np.ndarray):
 			Array of size (#events, time) with all events to be curated
-		curated_labels (numpy array):
+		curated_labels (np.ndarray):
 			Boolean array of size (#events,) indicating if the curation has classified
 			each event as SWR (True) or IED (False).
-		params (dictionary):
+		params (dict):
 			Dictionary of parameters, including: id_fps, win_size, do_detrend, do_zscore, 
 			list_n_neighbors, list_min_dists, max_B, intrinsic_dimension, n_elements, 
 			n_axis_bins, file_name, saveas_folder, n_neighbors, min_dist, do_cluster, 
 			embedding
-		from_swr_detector (numpy array):
+		from_swr_detector (np.ndarray):
 			Array of size (#events,) specifying for each event how was it detected:
 				0 - from IED detector
 				1 - from SWR detector
 				2 - manually labeled as FP
 
-
-	Returns:
+	Outputs:
 	--------
 		finish (boolean):
 			Finish analysis or not
@@ -1123,74 +1125,105 @@ def plot_curated_events(events, curated_labels, params, from_swr_detector=None):
 	manual_inspection = params['manual_inspection'] if 'manual_inspection' in params else False
 	text = 'manual_inspection' if manual_inspection else 'curated_events'
 
-	if np.sum(curated_labels)>0:
+	
+	# Function to normalize data
+	def normalize_data(data):
+		return (data - np.min(data)) / (np.max(data) - np.min(data))
 
-		# Curated events
-		curated_events = events[curated_labels]
-		kmax = np.max(np.abs(curated_events))
+	# Function to plot all events one next to another
+	def plot_all_events(ax, events, curated_labels, normalize=False):
+		if np.sum(curated_labels)>0:
 
-		# Plot curated events
-		n_cols = int(np.sqrt(len(curated_events)))
-		plt.figure(figsize=(12,12))
-		dx, dy = 0, 0
-		list_events = []
-		for ii,event in enumerate(curated_events):
-			if np.all(from_swr_detector == None):
-				plt.plot(dx+np.linspace(.05,.95,len(event)), 
-						 dy+event/kmax, linewidth=0.7)
+			# Curated events
+			curated_events = events[curated_labels]
+			kmax = 1.5 if normalize else np.max(np.abs(curated_events))
+
+			# Plot curated events
+			n_cols = int(np.sqrt(len(curated_events)))
+			dx, dy = 0, 0
+			for ii,event in enumerate(curated_events):
+				event = normalize_data(event) if normalize else event
+				if np.all(from_swr_detector == None):
+					ax.plot(dx+np.linspace(.05,.95,len(event)), 
+							dy+event/kmax, linewidth=0.7)
+				else:
+					ax.plot(dx+np.linspace(.05,.95,len(event)), 
+							dy+event/kmax, linewidth=0.7, color=COLORS[from_swr_detector[curated_labels][ii]])
+				dx = dx+1
+				if dx >= n_cols:
+					dx = 0
+					dy = dy-1
+		# Draw axis
+		ax.set_xticks([])
+		ax.set_yticks([])
+		ax.set_axis_off()
+	
+	# Class to Normalize events
+	class NormalizeButton:
+		do_normalize = False
+		method_b = None
+		ax = None
+		def method_button(self, event):
+			self.do_normalize = not self.do_normalize
+			self.ax.cla()
+			# Plot
+			plot_all_events(self.ax, events, curated_labels, normalize=self.do_normalize)
+			# Change name in button label
+			self.method_b.label.set_text('See events\n'+('in mV' if self.do_normalize else 'normalized'))
+			# Title and save
+			if len(file_name) > 0:
+				ax.set_title(f"{file_name} - all {text.replace('_',' ')}\n{intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)}")
 			else:
-				plt.plot(dx+np.linspace(.05,.95,len(event)), 
-						 dy+event/kmax, linewidth=0.7, color=COLORS[from_swr_detector[curated_labels][ii]])
-			dx = dx+1
-			if dx >= n_cols:
-				dx = 0
-				dy = dy-1
-		plt.xticks([])
-		plt.yticks([])
-		plt.axis('off')
-		# Title and save
-		if len(file_name) > 0:
-			plt.title(f"{file_name} - all {text.replace('_',' ')}\n{intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)}")
-		else:
-			plt.suptitle(f"All {text.replace('_',' ')} - {intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)} (iteration {iteration})")
-		plt.tight_layout()
-		if len(file_name) > 0:
-			plt.savefig(os.path.join(saveas_folder, f'{file_name}_{text}.{save_format}'))
-		else:
-			plt.savefig(os.path.join(saveas_folder, f'{text}.{save_format}'))
-		plt.show()
+				plt.suptitle(f"All {text.replace('_',' ')} - {intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)} (iteration {iteration})")
+			plt.tight_layout()
+			# Save
+			if len(file_name) > 0:
+				fig.savefig(os.path.join(saveas_folder, f'{file_name}_{text}.{save_format}'))
+			else:
+				fig.savefig(os.path.join(saveas_folder, f'{text}.{save_format}'))
+			# redraw
+			plt.draw()
 
+
+	# Make figure
+	fig, ax = plt.subplots(figsize=(16,12))
+	plot_all_events(ax, events, curated_labels, normalize=False)
+
+	# Method button
+	callback = NormalizeButton()
+	axbut_norm = plt.axes([0.88, 0.94, 0.07, 0.05])
+	axbut_n = Button(axbut_norm, 'See events\n normalized')
+	axbut_n.on_clicked(callback.method_button)
+	callback.method_b = axbut_n
+	callback.ax = ax
+
+	# Title and save
+	if len(file_name) > 0:
+		ax.set_title(f"{file_name} - all {text.replace('_',' ')}\n{intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)}")
 	else:
-
-		plt.figure(figsize=(12,12))
-		plt.xticks([])
-		plt.yticks([])
-		# Title and save
-		if len(file_name) > 0:
-			plt.title(f"{file_name} - all {text.replace('_',' ')}\n{intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)}")
-		else:
-			plt.suptitle(f"All {text.replace('_',' ')} - {intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)} (iteration {iteration})")
-		plt.tight_layout()
-		if len(file_name) > 0:
-			plt.savefig(os.path.join(saveas_folder, f'{file_name}_{text}.{save_format}'))
-		else:
-			plt.savefig(os.path.join(saveas_folder, f'{text}.{save_format}'))
+		plt.suptitle(f"All {text.replace('_',' ')} - {intrinsic_dimension}D, n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f}, using {'+'.join(use)} (iteration {iteration})")
+	plt.tight_layout()
+	if len(file_name) > 0:
+		fig.savefig(os.path.join(saveas_folder, f'{file_name}_{text}.{save_format}'))
+	else:
+		fig.savefig(os.path.join(saveas_folder, f'{text}.{save_format}'))
+	plt.show()
 
 
 def manual_inspection(lfp, sf, t_swrs, t_ieds, params, events_in_screen=50, win_size=100, file_name='', saveas_folder=''):
 	'''
 	manual_inspection(lfp, sf, t_curated, events_in_screen=50, file_name='', saveas_folder='')
 	
-	Parameters:
-	-----------
-		lfp (numpy array): 
+	Inputs:
+	-------
+		lfp (np.ndarray): 
 			Array containing the LFP signal of the channel used to detect events
 		sf (float):
 			Sampling frequency, in Hz
-		t_swrs (numpy array):
+		t_swrs (np.ndarray):
 			Array containing the times (in seconds) of the center of the events 
 			automatically detected by the SWR detector
-		t_ieds (numpy array):
+		t_ieds (np.ndarray):
 			Array containing the times (in seconds) of the center of the events 
 			automatically detected by the IED detector
 		events_in_screen (int, optional):
@@ -1202,7 +1235,7 @@ def manual_inspection(lfp, sf, t_swrs, t_ieds, params, events_in_screen=50, win_
 		saveas_folder (string, optional):
 			Full path to folder in which to save plots (if provided)
 
-	Returns:
+	Outputs:
 	-------
 		It always writes the curated events begin and end times in saveas_folder
 		curated_ids: (events,) boolean array with 'True' for events that have been
