@@ -221,7 +221,7 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 	# --- UMAP ------
 
 	# Create embedding
-	umap_embeddings = np.empty((len(list_n_neighbors), len(list_min_dists), len(umap_events), 2))
+	umap_embeddings = np.empty((len(list_n_neighbors), len(list_min_dists), len(umap_events), intrinsic_dimension))
 	for iin, n_neigh in enumerate(list_n_neighbors):
 		for iid, min_dist in enumerate(list_min_dists):
 
@@ -230,11 +230,13 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 					min_dist=min_dist,
 					n_components=intrinsic_dimension,
 					metric='euclidean',
-					metric_kwds=None)
+					metric_kwds=None,
+					# random_state=42
+					)
 			print(f'making embedding (n_neighbors={n_neigh:.0f}, min_dist={min_dist:.1f})...\t\t\t\t', end='\r')
 			# Fit the data
 			embedding_umap.fit(umap_events)
-			umap_embeddings[iin,iid] = embedding_umap.embedding_[:,:2]
+			umap_embeddings[iin,iid] = embedding_umap.embedding_
 
 	curated_labels = None
 	do_finish = False
@@ -880,11 +882,13 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 					min_dist=min_dist,
 					n_components=intrinsic_dimension,
 					metric='euclidean',
-					metric_kwds=None)
+					metric_kwds=None,
+					# random_state=42
+					)
 			print(f'making embedding (n_neighbors={n_neighbors:.0f}, min_dist={min_dist:.1f})...\t\t\t\t', end='\r')
 			# Fit the data
 			embedding_umap.fit(lfp_events[curated_labels])
-			embedding = embedding_umap.embedding_[:,:2]
+			embedding = embedding_umap.embedding_
 
 		# Take 1st and 2nd dimension
 		xs = embedding[:,0] - np.mean(embedding[:,0])
@@ -936,7 +940,7 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 		# Plot UMAP clusters
 		for i in np.unique(clusters):
 			if i == -1: axes[1].scatter(xs[clusters==i], ys[clusters==i], s=6, color=[.8,.8,.8], edgecolor='none')
-			else: axes[1].scatter(xs[clusters==i], ys[clusters==i], s=6, edgecolor='none')
+			else: axes[1].scatter(xs[clusters==i], ys[clusters==i], c=f'C{i+(i>=0)+(i>=2)}', s=6, edgecolor='none')
 		axes[1].set_xticks([])
 		axes[1].set_yticks([])
 		axes[1].set_xlabel('UMAP 1')
@@ -977,6 +981,7 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 			params = None
 			X = None
 			Y = None
+			embedding = None
 
 			def line_select(self, verts):
 				self.verts = verts
@@ -1007,6 +1012,23 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 				print(f'from_swr_detector[ids_in_embedding].shape: {from_swr_detector.shape}')
 				plot_curated_events(self.lfp_events[ids_in_embedding,:], curated_labels_plot[ids_in_embedding], self.params, from_swr_detector=from_swr_detector[ids_in_embedding])
 
+			def plot_3d(self, event):
+				fig = plt.figure(figsize=(10,10))
+				axs = []
+				for iplot, (dim1, dim2, dim3) in enumerate([(0,1,2), (0,1,3), (0,2,3), (1,2,3)]):
+					axs.append( fig.add_subplot(2,2,iplot+1, projection='3d') )
+					for i in np.unique(clusters):
+						ids = (self.curated_labels) & (self.clusters==i)
+						if i == -1: axs[iplot].scatter(self.embedding[ids,dim1], self.embedding[ids,dim2], self.embedding[ids,dim3], s=6, color=[.8,.8,.8], edgecolor='none')
+						else: axs[iplot].scatter(self.embedding[ids,dim1], self.embedding[ids,dim2], self.embedding[ids,dim3], c=f'C{i+(i>=0)+(i>=2)}', s=6, edgecolor='none')
+					axs[iplot].set_xticks([])
+					axs[iplot].set_yticks([])
+					axs[iplot].set_zticks([])
+					axs[iplot].set_xlabel(f'UMAP {dim1+1}')
+					axs[iplot].set_ylabel(f'UMAP {dim2+1}')
+					axs[iplot].set_zlabel(f'UMAP {dim3+1}')
+				plt.show()
+
 			def finish_button(self, event):
 				self.do_finish = True
 				plt.savefig(self.savefig)
@@ -1019,6 +1041,9 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 		callback.params = params
 		callback.X = xs.reshape(-1,1)
 		callback.Y = ys.reshape(-1,1)
+		print(embedding.shape)
+		callback.embedding = embedding.copy()
+		callback.clusters = clusters.copy()
 		if len(file_name) > 0:
 			callback.savefig = os.path.join(saveas_folder, f'{file_name}_cluster_iteration{iteration}.{save_format}')
 		else:
@@ -1040,7 +1065,11 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 		axbut_e = Button(axbut_events, 'Plot events')
 		axbut_e.on_clicked(callback.events_button)
 		# Finish button
-		axbut_finish = plt.axes([0.91, 0.40, 0.08, 0.075])
+		axbut_3d = plt.axes([0.91, 0.40, 0.08, 0.075])
+		axbut_3 = Button(axbut_3d, 'Plot in 3D')
+		axbut_3.on_clicked(callback.plot_3d)
+		# Finish button
+		axbut_finish = plt.axes([0.91, 0.30, 0.08, 0.075])
 		axbut_f = Button(axbut_finish, 'Finish')
 		axbut_f.on_clicked(callback.finish_button)
 		# Interactive rectangle 
