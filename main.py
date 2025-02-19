@@ -29,7 +29,7 @@ times = { 'swrs': detections_dict['HFOs'].flatten(),
 
 # Parameters
 win_size_show = 0.100
-win_size_umap = 0.020
+win_size_umap = 0.010
 do_detrend = True
 do_zscore = False
 list_n_neighbors = [10, 50, 100]
