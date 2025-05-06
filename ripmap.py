@@ -160,6 +160,9 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 	from_swr_detector = np.append(np.ones_like(t_swrs), np.zeros_like(t_ieds)).astype(int)
 	if len(t_swrs) > 0:
 		from_swr_detector[id_fps] = 2
+	# Update params
+	params['t_all'] = t_all
+	params['from_detector'] = from_swr_detector
 	# Make matrix of events
 	id_win = np.arange(-win_size_show*sf, win_size_show*sf +1).astype(int).reshape(1,-1)
 	id_events = (t_all*sf).astype(int).reshape(-1,1)
@@ -263,9 +266,15 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 
 		if do_cluster: # Option 1: do_clusters=False -> Axis projection
 			curated_labels, params = cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, params)
+			# Save info of events selected by axis
+			params['selected_by_cluster'] = np.zeros((embedding.shape[0]))
+			params['selected_by_cluster'] = curated_labels
 
 		else: # Option 2: do_clusters=True -> Clusterization 
 			curated_labels, params = axis_projection_curation(embedding, lfp_events, umap_events, from_swr_detector, params)
+			# Save info of events selected by axis
+			params['selected_by_axis'] = np.zeros((embedding.shape[0]))
+			params['selected_by_axis'] = curated_labels
 
 	# ========= STEP 4: RETURN =========================================================================
 
@@ -821,6 +830,7 @@ def axis_projection_curation(embedding, lfp_events, umap_events, from_swr_detect
 			min_bin = callback.min_bin
 			max_bin = callback.max_bin
 			curated_labels = (callback.event_bins>=min_bin) & (callback.event_bins<=max_bin)
+		params['axis_bins'] = callback.event_bins
 
 	return curated_labels, params
 
@@ -889,6 +899,7 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 			# Fit the data
 			embedding_umap.fit(lfp_events[curated_labels])
 			embedding = embedding_umap.embedding_
+			params['embedding'] = embedding
 
 		# Take 1st and 2nd dimension
 		xs = embedding[:,0] - np.mean(embedding[:,0])
@@ -1018,7 +1029,7 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 				for iplot, (dim1, dim2, dim3) in enumerate([(0,1,2), (0,1,3), (0,2,3), (1,2,3)]):
 					axs.append( fig.add_subplot(2,2,iplot+1, projection='3d') )
 					for i in np.unique(clusters):
-						ids = (self.curated_labels) & (self.clusters==i)
+						ids = (self.clusters==i)
 						if i == -1: axs[iplot].scatter(self.embedding[ids,dim1], self.embedding[ids,dim2], self.embedding[ids,dim3], s=6, color=[.8,.8,.8], edgecolor='none')
 						else: axs[iplot].scatter(self.embedding[ids,dim1], self.embedding[ids,dim2], self.embedding[ids,dim3], c=f'C{i+(i>=0)+(i>=2)}', s=6, edgecolor='none')
 					axs[iplot].set_xticks([])
@@ -1100,8 +1111,16 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 
 	# If 'project to axis' button is pressed, then do axis analysis
 	if callback.do_axis:
+		# breakpoint()
 		ids_in_embedding = np.argwhere(curated_labels).flatten()
 		axis_curation, params = axis_projection_curation(embedding_original[curated_labels,:], lfp_events[curated_labels], umap_events[curated_labels], from_swr_detector[curated_labels], params)
+		# Save info of events selected by axis
+		params['selected_by_axis'] = np.zeros_like(curated_labels)
+		params['selected_by_axis'][ids_in_embedding] = axis_curation
+		# Add '-1' to params['axis_bins'] for events that were not in the axis projection
+		bins_ = -1 * np.ones_like(curated_labels)
+		bins_[ids_in_embedding] = 1+params['axis_bins']
+		params['axis_bins'] = bins_
 		if np.all(axis_curation == None):
 			curated_labels = None
 		else:
@@ -1110,6 +1129,10 @@ def cluster_curation(embedding, lfp_events, umap_events, from_swr_detector, para
 	# Go back
 	elif callback.go_back:
 		curated_labels = None
+
+	# Save info of events selected by axis
+	params['selected_by_cluster'] = np.zeros((embedding.shape[0]))
+	params['selected_by_cluster'] = curated_labels
 
 	return curated_labels, params
 
@@ -1420,4 +1443,4 @@ def manual_inspection(lfp, sf, t_swrs, t_ieds, params, events_in_screen=50, win_
 	plt.show(block=True)
 
 	# Return
-	return np.array(oIn.keeps)
+	return np.array(oIn.keeps), from_swr_detector

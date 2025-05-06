@@ -51,7 +51,7 @@ selected_hfos, selected_ieds, events, params = ripmap.event_curation(lfp, sf, ti
 								file_name=file_name, saveas_folder=saveas_folder, save_format='png')
 
 # Final manual inspection - optional
-ids_keep = ripmap.manual_inspection(lfp, sf, times['swrs'][selected_hfos], times['ieds'][selected_ieds], 
+ids_keep, ids_detector = ripmap.manual_inspection(lfp, sf, times['swrs'][selected_hfos], times['ieds'][selected_ieds], 
 								params, events_in_screen=50, win_size=200,
 								file_name=file_name, saveas_folder=saveas_folder)
 
