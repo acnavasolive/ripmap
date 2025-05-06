@@ -1295,11 +1295,14 @@ def manual_inspection(lfp, sf, t_swrs, t_ieds, params, events_in_screen=50, win_
 	while (events_in_screen%n_suby) != 0:
 		n_suby = np.ceil(np.sqrt(events_in_screen)).astype(int)+tries[k]
 		k += 1
-	fig, axes = plt.subplots(n_suby,int(events_in_screen/n_suby), figsize=(16,8))
+	fig, axes = plt.subplots(n_suby,int(events_in_screen/n_suby), figsize=(15,10))
 	fig.suptitle(f"Displaying ripples {oIn.index} to {oIn.n_og_len if (oIn.check_index(events_in_screen)) else oIn.index+events_in_screen } out of {oIn.n_og_len}",x=0.475)
 	# Color definition
 	axcolor = (20/255,175/255,245/255)	  # light blue
 	hovercolor=(214/255,255/255,255/255)	# light grey
+	lfp_all = lfp[id_all.reshape(-1,1) + np.arange(-timesteps,timesteps).reshape(1,-1)]
+	ylims = np.mean(lfp_all) + 5*np.std(lfp_all)*np.array([-1,1])
+	# ylims = np.max(np.abs(lfp_all-np.mean(lfp_all, axis=1, keepdims=True)))*0.75 * np.array([-1,1])
 
 	# No need to pass oIn as parameter, but otherwise it needs to be defined after the object declaration
 	def plot_ripples():
@@ -1316,7 +1319,10 @@ def manual_inspection(lfp, sf, t_swrs, t_ieds, params, events_in_screen=50, win_
 			disp_ind = i+oIn.index
 			ini_window = np.maximum(id_all[disp_ind]-timesteps,0)
 			end_window = np.minimum(id_all[disp_ind]+timesteps,len(lfp))
-			lines = ax.plot(lfp[ini_window:end_window], c=0.8*COLORS[from_swr_detector[disp_ind]], linewidth=0.5)
+			lines = ax.plot(lfp[ini_window:end_window] - np.mean(lfp[ini_window:end_window]), 
+				c=0.8*COLORS[from_swr_detector[disp_ind]], linewidth=0.5)
+			ax.set_ylim(ylims)
+			ax.set_xlim([-0.2*timesteps, 2*timesteps + timesteps*0.2])
 			check_colors(oIn, i, ax)
 	plot_ripples()
 
