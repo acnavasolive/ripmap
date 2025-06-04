@@ -148,7 +148,7 @@ def event_curation(lfp, sf, times, power_spectrum=[], use=['lfp'],
 	list_n_neighbors = np.array(list_n_neighbors)
 	list_min_dists = np.array(list_min_dists)
 	# Make dict
-	params = {'id_fps':id_fps, 'use':use, 'win_size_show':win_size_show, 'win_size_umap':win_size_umap, 'do_detrend':do_detrend, 'do_zscore':do_zscore, 
+	params = {'sf':sf, 'id_fps':id_fps, 'use':use, 'win_size_show':win_size_show, 'win_size_umap':win_size_umap, 'do_detrend':do_detrend, 'do_zscore':do_zscore, 
 			  'list_n_neighbors':list_n_neighbors, 'list_min_dists':list_min_dists, 'max_B':max_B,
 			  'intrinsic_dimension':intrinsic_dimension, 'n_elements':n_elements, 
 			  'n_axis_bins':n_axis_bins, 'axis_method':axis_method, 'do_axis_grid':do_axis_grid,
@@ -1174,6 +1174,8 @@ def plot_curated_events(events, curated_labels, params, from_swr_detector=None):
 	saveas_folder = params['saveas_folder']
 	save_format = params['save_format']
 	use = params['use']
+	win_size_show = params['win_size_show']
+	sf = params['sf']
 	manual_inspection = params['manual_inspection'] if 'manual_inspection' in params else False
 	text = 'manual_inspection' if manual_inspection else 'curated_events'
 
@@ -1183,7 +1185,7 @@ def plot_curated_events(events, curated_labels, params, from_swr_detector=None):
 		return (data - np.min(data)) / (np.max(data) - np.min(data))
 
 	# Function to plot all events one next to another
-	def plot_all_events(ax, events, curated_labels, normalize=False):
+	def plot_all_events(ax, events, curated_labels, sf=sf, wsize=win_size_show, normalize=False):
 		if np.sum(curated_labels)>0:
 
 			# Curated events
@@ -1201,6 +1203,15 @@ def plot_curated_events(events, curated_labels, params, from_swr_detector=None):
 				else:
 					ax.plot(dx+np.linspace(.05,.95,len(event)), 
 							dy+event/kmax, linewidth=0.7, color=COLORS[from_swr_detector[curated_labels][ii]])
+				# Plot time scale
+				if ii == 0:
+					ax.plot([dx+.05,dx+.50], [dy+1.2, dy+1.2], linewidth=1, color='k')
+					ax.text(dx+.05+(.50-.05)/2., dy+1.25, f'{wsize*1000:.0f}ms', size='small', horizontalalignment='center', verticalalignment='baseline')
+				# # Plot V scale
+				# if (ii == 0) & (not normalize):
+				# 	ax.plot([dx+.05,dx+.05], [dy+1.2, dy+1], linewidth=1, color='k')
+				# 	ax.text(dx+.20, dy+1.05, f'{wsize*1000:.0f}ms', size='small')
+				# Prepare for next
 				dx = dx+1
 				if dx >= n_cols:
 					dx = 0
